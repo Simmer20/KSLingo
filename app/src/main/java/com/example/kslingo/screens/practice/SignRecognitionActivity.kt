@@ -16,8 +16,6 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.kslingo.R
-import com.example.kslingo.screens.practice.SignRecognitionHelper
-import com.google.mediapipe.formats.proto.LandmarkProto
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -70,7 +68,7 @@ class SignRecognitionActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalGetImage::class)
     private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.Companion.getInstance(this)
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
@@ -114,10 +112,15 @@ class SignRecognitionActivity : AppCompatActivity() {
         if (result.landmarks().isNotEmpty()) {
             val landmarks = result.landmarks()[0]
             val landmarkArray = FloatArray(63)
+
+            val wristX = landmarks[0].x()
+            val wristY = landmarks[0].y()
+            val wristZ = landmarks[0].z()
+
             landmarks.forEachIndexed { index, landmark ->
-                landmarkArray[index * 3] = landmark.x()
-                landmarkArray[index * 3 + 1] = landmark.y()
-                landmarkArray[index * 3 + 2] = landmark.z()
+                landmarkArray[index * 3] = landmark.x() - wristX
+                landmarkArray[index * 3 + 1] = landmark.y() - wristY
+                landmarkArray[index * 3 + 2] = landmark.z() - wristZ
             }
 
             // Run inference
@@ -133,17 +136,6 @@ class SignRecognitionActivity : AppCompatActivity() {
             }
         }
     }
-    private fun prepareInput(landmarks: List<LandmarkProto.Landmark>): FloatArray {
-        val input = FloatArray(63)  // 21 landmarks * 3
-        var index = 0
-        for (lm in landmarks) {
-            input[index++] = lm.x  // already 0–1
-            input[index++] = lm.y  // already 0–1
-            input[index++] = lm.z  // already relative depth
-        }
-        return input
-    }
-
 
     private fun checkCameraPermission(): Boolean {
         return ContextCompat.checkSelfPermission(

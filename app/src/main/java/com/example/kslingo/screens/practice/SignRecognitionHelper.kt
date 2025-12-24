@@ -38,12 +38,10 @@ class SignRecognitionHelper(context: Context) {
             rewind()
         }
 
-        // Prepare output
         val outputBuffer = ByteBuffer.allocateDirect(signLabels.size * 4).apply {
             order(ByteOrder.nativeOrder())
         }
 
-        // Run inference
         interpreter.run(inputBuffer, outputBuffer)
 
         // Parse results

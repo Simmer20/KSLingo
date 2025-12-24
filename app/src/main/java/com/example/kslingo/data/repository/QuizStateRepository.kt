@@ -75,8 +75,6 @@ class QuizStateRepository(private val context: Context) {
     }
 
     fun isQuizPassed(quizId: String): Boolean {
-        // This is okay for now, but for better practice, you might pass QuizRepository as a parameter
-        // or inject it via the constructor if this class were managed by a DI framework like Hilt.
         val quiz = QuizRepository(context).getQuizById(quizId)
         val bestScore = getBestScore(quizId)
         return bestScore >= (quiz?.passingScore ?: 70)

@@ -31,11 +31,8 @@ class UserProfileRepository(private val context: Context) {
     val userProfile: StateFlow<UserProfile?> = _userProfile.asStateFlow()
 
     init {
-        // This listener ensures that whenever the auth state changes (login/logout),
-        // the user profile is automatically fetched or cleared.
         auth.addAuthStateListener { firebaseAuth ->
             if (firebaseAuth.currentUser != null) {
-                // User is logged in, fetch their profile on a background thread.
                 CoroutineScope(Dispatchers.IO).launch {
                     _userProfile.value = getUserProfile()
                 }
@@ -46,10 +43,6 @@ class UserProfileRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Fetches the complete user profile, combining local progress with Firestore data.
-     * If a user document doesn't exist in Firestore, it creates one.
-     */
     suspend fun getUserProfile(): UserProfile? {
         val currentUser = auth.currentUser ?: return null
 
@@ -63,7 +56,6 @@ class UserProfileRepository(private val context: Context) {
             val averageScore = quizResults.map { it.score }.average().takeIf { !it.isNaN() } ?: 0.0
 
             if (userDoc.exists()) {
-                // User exists in Firestore, build the profile with fresh local data.
                 Log.d("PROFILE_DEBUG", "User document exists. Building profile with fresh progress.")
                 val progressMap = userDoc.get("progress") as? Map<String, Any> ?: emptyMap()
 
@@ -86,25 +78,19 @@ class UserProfileRepository(private val context: Context) {
                     achievements = getRealAchievements(completedLessonsCount, quizResults, calculateCurrentStreak(currentUser.uid))
                 )
 
-                // 2. Update Firestore with the latest calculated progress.
                 updateUserProgress(currentUser.uid, profile.learningStats)
                 profile
 
             } else {
-                // User does not exist in Firestore, create a new document for them.
                 Log.d("PROFILE_DEBUG", "No document found. Creating new user with initial progress.")
                 createUserWithRealProgress(currentUser, completedLessonsCount, quizResults)
             }
         } catch (e: Exception) {
             Log.e("PROFILE_DEBUG", "Error fetching profile: ${e.message}", e)
-            // Fallback to a basic profile if Firestore fails.
             createBasicProfileWithProgress(currentUser)
         }
     }
 
-    /**
-     * Creates a new user document in Firestore with their initial progress.
-     */
     private suspend fun createUserWithRealProgress(
         user: FirebaseUser,
         completedLessonsCount: Int,
@@ -147,9 +133,6 @@ class UserProfileRepository(private val context: Context) {
         )
     }
 
-    /**
-     * Updates the 'progress' map in Firestore for a given user.
-     */
     private suspend fun updateUserProgress(userId: String, stats: LearningStats) {
         try {
             // Update the 'progress' sub-document in one go.
@@ -162,13 +145,11 @@ class UserProfileRepository(private val context: Context) {
     suspend fun updateProfile(updatedProfile: UserProfile): Boolean {
         val user = auth.currentUser ?: return false
         return try {
-            // Update in Firebase Auth
             val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
                 .setDisplayName(updatedProfile.displayName)
                 .build()
             user.updateProfile(profileUpdates).await()
 
-            // Update in Firestore
             val updates = mapOf(
                 "username" to updatedProfile.username,
                 "displayName" to updatedProfile.displayName
@@ -180,10 +161,6 @@ class UserProfileRepository(private val context: Context) {
             false
         }
     }
-
-    /**
-     * Increments the total practice time in Firestore.
-     */
     suspend fun updatePracticeTime(minutes: Int) {
         auth.currentUser?.uid?.let { userId ->
             try {
@@ -195,8 +172,6 @@ class UserProfileRepository(private val context: Context) {
             }
         }
     }
-
-    // --- Helper & Calculation Functions ---
 
     private fun safeGetInt(value: Any?): Int {
         return (value as? Number)?.toInt() ?: 0

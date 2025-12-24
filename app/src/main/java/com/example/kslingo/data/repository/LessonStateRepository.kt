@@ -15,10 +15,8 @@ class LessonStateRepository(private val context: Context) {
     private val auth = FirebaseAuth.getInstance()
 
     init {
-        // Immediately load data for the current user, if any
         handleUserChange(auth.currentUser)
 
-        // Listen for subsequent authentication state changes
         auth.addAuthStateListener {
             handleUserChange(it.currentUser)
         }
@@ -26,17 +24,14 @@ class LessonStateRepository(private val context: Context) {
 
     private fun handleUserChange(firebaseUser: FirebaseUser?) {
         if (firebaseUser != null) {
-            // User is signed in
             val prefsName = "lesson_prefs_${firebaseUser.uid}"
             if (userPrefs?.toString()?.contains(prefsName) == true) {
-                // Same user, no need to reload
                 return
             }
             Log.d("LessonStateRepo", "User changed to ${firebaseUser.uid}. Loading their progress.")
             userPrefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
             loadCompletedLessonsFromPrefs()
         } else {
-            // User is signed out
             Log.d("LessonStateRepo", "User logged out. Clearing local data.")
             completedLessonsInMemory.clear()
             userPrefs = null
