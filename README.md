@@ -23,4 +23,8 @@ A mobile application for learning Kenyan Sign Language with AI-powered gesture r
 4. Build and run
 
 ## Contributors
+<<<<<<< HEAD
 - [Mercy Mwaniki] - [151675]
+=======
+- [Mercy Mwaniki] - [151675]
+>>>>>>> 713ae74d7808d1918a788531b7ef7eb707fade06
